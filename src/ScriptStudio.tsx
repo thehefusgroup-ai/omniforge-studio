@@ -119,10 +119,10 @@ export default function ScriptStudio({ addSource, toast, sendToVoice }: {
   });
 
   return (
-    <div className="h-full flex flex-col gap-3 p-3 min-h-0 area-enter">
+    <div className="h-full flex flex-col gap-3 p-3 min-h-0 area-enter overflow-y-auto">
       <div className="flex items-center justify-between shrink-0"><div><h1 className="font-disp font-bold text-[19px] leading-tight tracking-tight">Content Script Generator</h1><div className="text-[11px] text-dim mt-0.5">API-driven premium scripts · tuned for Facebook, Instagram, TikTok & YouTube retention curves</div></div><div className="flex items-center gap-2"><Chip t="cyan"><IcSpark s={10} /> FREEFACELESS · GEMINI</Chip><Chip t="amber">REAL BACKEND</Chip></div></div>
       <div className="flex-1 grid grid-cols-[300px_1fr_280px] gap-3 min-h-0">
-        <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pr-0.5">
+        <div className="flex flex-col gap-3 min-h-0 overflow-y-auto pr-0.5 [&>*]:shrink-0">
           <Panel title="GENERATION MODE"><Seg opts={[{ v: 'exact' as GenMode, label: <><IcTarget s={11} /> Only Topic</>, title: 'Generate strictly on your topic/niche' }, { v: 'related' as GenMode, label: <><IcSpark s={11} /> Related</>, title: 'Pivot to a popular related topic/niche' }, { v: 'dice' as GenMode, label: <><IcDice s={11} /> Roll Dice</>, title: 'Discovery — random trending topic' }]} value={mode} onChange={v => patch('mode', v)} /><p className="text-[10.5px] text-dim leading-relaxed mt-2">{mode === 'exact' && 'Engine locks onto your exact topic/niche and builds every segment around it.'}{mode === 'related' && 'Engine finds a proven popular angle adjacent to your topic/niche.'}{mode === 'dice' && 'Discovery mode — engine rolls a random topic from the live trending pool.'}</p><Lbl c="mt-3 mb-1">Topic / Niche</Lbl><div className="flex gap-1.5"><input className="field" value={topic} onChange={e => patch('topic', e.target.value)} placeholder="e.g. budget travel hacks" disabled={mode === 'dice'} /><Btn v="dark" s="sm" title="Random trending topic" onClick={() => { patch('topic', TRENDING[Math.floor(Math.random() * TRENDING.length)].topic); toast('Topic rolled from trending pool', 'info'); }}><IcDice s={12} /></Btn></div></Panel>
           <Panel title="LENGTH & DENSITY">
             <div className="flex items-end gap-2">
