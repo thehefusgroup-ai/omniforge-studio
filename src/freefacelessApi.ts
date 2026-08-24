@@ -31,6 +31,25 @@ export type ApiProductionResult = {
   duration_sec: number;
 };
 
+export type ApiVoiceRequest = {
+  text: string;
+  voice_id: string;
+  style: string;
+  emotion: string;
+  speed: number;
+  preview?: boolean;
+};
+
+export type ApiVoiceResult = {
+  ok: boolean;
+  voice_id: string;
+  gemini_voice: string;
+  audio_url: string;
+  path: string;
+  duration_sec: number;
+  preview: boolean;
+};
+
 const API_BASE = 'http://127.0.0.1:8000';
 
 export async function generateFreeFacelessScript(
@@ -52,6 +71,31 @@ export async function generateFreeFacelessScript(
   }
 
   return payload as ApiScriptResult;
+}
+
+export async function synthesizeFreeFacelessVoice(
+  request: ApiVoiceRequest,
+  signal?: AbortSignal,
+): Promise<ApiVoiceResult> {
+  const response = await fetch(`${API_BASE}/api/voice/synthesize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    signal,
+  });
+
+  let payload: any = null;
+  try { payload = await response.json(); } catch { /* handled below */ }
+
+  if (!response.ok) {
+    throw new Error(payload?.detail || `FreeFaceless voice API returned HTTP ${response.status}`);
+  }
+
+  return payload as ApiVoiceResult;
+}
+
+export function freeFacelessOutputUrl(relativeUrl: string): string {
+  return `${API_BASE}${relativeUrl}`;
 }
 
 export async function produceLastFreeFacelessVideo(
