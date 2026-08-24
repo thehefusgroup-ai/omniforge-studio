@@ -150,7 +150,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dim"><IcSearch s={12} /></span>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+          <div className="flex-1 overflow-y-scroll overscroll-contain p-2 pr-1 space-y-2">
             {filtered.map(v => {
               const active = v.id === voiceId;
               return (
@@ -231,21 +231,23 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
           </Panel>
         </div>
 
-        <Panel title={`RENDER HISTORY · ${takes.length}`} c="min-h-0" pad={false} right={<Chip t="amber">→ MEDIA LIBRARY</Chip>}>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {takes.length === 0 && <Empty icon={<IcWave s={26} />} title="No takes rendered yet" sub="Render a full take and it lands here — and in the Compiler's source list automatically." />}
-            {takes.map((t, i) => <div key={t.id} className="rounded-[6px] border border-line bg-bg2 p-2.5 pop-in">
-              <div className="flex items-center justify-between gap-2"><span className="font-disp font-semibold text-[11.5px] text-ink">Take {String(takes.length - i).padStart(2, '0')} · {t.voiceName}</span><Chip t="cyan">{t.secs}s</Chip></div>
-              <p className="text-[10.5px] text-dim mt-1 line-clamp-2 leading-snug">{t.text}</p>
-              <div className="flex items-center gap-1.5 mt-2">
-                <Btn v="ghost" s="xs" onClick={() => speak(t.text, VOICES.find(v => v.id === t.voiceId) ?? model, 'preview')}><IcPlay s={9} /> Replay</Btn>
-                <Btn v="ghost" s="xs" onClick={() => { setText(t.text); toast('Take script loaded', 'info'); }}><IcRefresh s={9} /> Load</Btn>
-                <Btn v="ghost" s="xs" className="ml-auto text-red!" onClick={() => setTakes(x => x.filter(y => y.id !== t.id))}><IcTrash s={9} /></Btn>
-              </div>
-              <div className="flex gap-1 mt-1.5"><Chip>{t.style}</Chip>{t.emotion !== 'None' && <Chip t="vio">{t.emotion}</Chip>}<span className="ml-auto font-mono text-[9px] text-dim self-center">{new Date(t.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-            </div>)}
+        <Panel title={`RENDER HISTORY · ${takes.length}`} c="min-h-0" pad={false}>
+          <div className="p-2 border-b border-line shrink-0">
+            <div className="text-[10px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
           </div>
-          <div className="p-2 border-t border-line shrink-0"><div className="flex items-center gap-1.5 text-[10px] text-dim"><IcSend s={10} c="text-cyan" /> Every real Gemini take auto-registers as a compiler source.</div></div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            {takes.length === 0 ? <Empty icon={<IcWave s={24} />} title="No takes yet" sub="Render a full take to populate the history." /> : takes.map(t => (
+              <div key={t.id} className="rounded-[6px] border border-line bg-bg2 p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-disp font-semibold text-[11.5px] text-ink">{t.voiceName}</div>
+                  <Chip t="grn"><IcCheck s={9} /> DONE</Chip>
+                </div>
+                <div className="font-mono text-[9px] text-dim mt-1">{t.secs}s · {t.chars} chars · {t.style}{t.emotion !== 'None' ? ` · ${t.emotion}` : ''}</div>
+                <p className="text-[10px] text-mut mt-2 line-clamp-3 leading-relaxed">{t.text}</p>
+                {t.audioUrl && <audio className="w-full mt-2 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
+              </div>
+            ))}
+          </div>
         </Panel>
       </div>
     </div>
