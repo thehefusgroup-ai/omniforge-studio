@@ -19,6 +19,18 @@ export type ApiScriptResult = {
   full_text: string;
 };
 
+export type ApiProductionResult = {
+  ok: boolean;
+  topic: string;
+  title: string;
+  path: string;
+  video_url: string;
+  voice_path: string;
+  captions_path: string;
+  words: number;
+  duration_sec: number;
+};
+
 const API_BASE = 'http://127.0.0.1:8000';
 
 export async function generateFreeFacelessScript(
@@ -40,6 +52,25 @@ export async function generateFreeFacelessScript(
   }
 
   return payload as ApiScriptResult;
+}
+
+export async function produceLastFreeFacelessVideo(
+  signal?: AbortSignal,
+): Promise<ApiProductionResult> {
+  const response = await fetch(`${API_BASE}/api/produce-last`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal,
+  });
+
+  let payload: any = null;
+  try { payload = await response.json(); } catch { /* handled below */ }
+
+  if (!response.ok) {
+    throw new Error(payload?.detail || `FreeFaceless production returned HTTP ${response.status}`);
+  }
+
+  return payload as ApiProductionResult;
 }
 
 export async function checkFreeFacelessHealth(): Promise<boolean> {
