@@ -46,6 +46,15 @@ body {
 *::-webkit-scrollbar-thumb:hover { background: #46556d; background-clip: content-box; border: 2px solid transparent; }
 *::-webkit-scrollbar-track { background: transparent; }
 
+/* Voice Studio model list: give the list a real bounded viewport so the scrollbar has
+   an actual scroll range even when its Panel content wrapper is not a flex container. */
+.flex-1.overflow-y-scroll.overscroll-contain {
+  height: calc(100vh - 320px);
+  max-height: calc(100vh - 320px);
+  min-height: 0;
+  flex: none;
+}
+
 /* ---------- form primitives ---------- */
 .field {
   width: 100%;
