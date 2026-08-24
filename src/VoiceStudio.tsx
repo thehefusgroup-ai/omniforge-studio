@@ -129,11 +129,11 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   const bars = useMemo(() => Array.from({ length: 44 }, (_, i) => 22 + ((model.id.charCodeAt(0) + i * 37) % 74)), [model.id]);
 
   const renderHistory = (
-    <Panel title={`RENDER HISTORY · ${takes.length}`} c="h-[120px] min-h-0 shrink-0" pad={false}>
-      <div className="p-2 border-b border-line shrink-0">
-        <div className="text-[10px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
+    <Panel title={`RENDER HISTORY · ${takes.length}`} c="h-[220px] min-h-0 shrink-0" pad={false}>
+      <div className="px-2.5 py-1.5 border-b border-line shrink-0">
+        <div className="text-[9.5px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
         {takes.length === 0 ? <Empty icon={<IcWave s={24} />} title="No takes yet" sub="Render a full take to populate the history." /> : takes.map(t => (
           <div key={t.id} className="rounded-[6px] border border-line bg-bg2 p-2.5">
             <div className="flex items-center justify-between gap-2">
@@ -141,8 +141,8 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
               <Chip t="grn"><IcCheck s={9} /> DONE</Chip>
             </div>
             <div className="font-mono text-[9px] text-dim mt-1">{t.secs}s · {t.chars} chars · {t.style}{t.emotion !== 'None' ? ` · ${t.emotion}` : ''}</div>
-            <p className="text-[10px] text-mut mt-2 line-clamp-2 leading-relaxed">{t.text}</p>
-            {t.audioUrl && <audio className="w-full mt-2 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
+            <p className="text-[10px] text-mut mt-1.5 line-clamp-2 leading-relaxed">{t.text}</p>
+            {t.audioUrl && <audio className="w-full mt-1.5 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
           </div>
         ))}
       </div>
@@ -237,10 +237,10 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
             <Panel title="DELIVERY PARAMETERS">
               <div className="space-y-3">
                 <Range label="Speed" value={rateMul} min={0.5} max={2} step={0.05} onChange={setRateMul} fmt={n => n.toFixed(2) + '×'} />
-                <Range label="Pitch" value={pitchMul} min={0.5} max={2} step={0.05} onChange={setPitchMul} fmt={n => n.toFixed(2) + '×'} cy />
-                <div className="grid grid-cols-2 gap-2">
-                  <div><Lbl c="mb-1">Speaking style</Lbl><SelWrap><select className="field" value={style} onChange={e => setStyle(e.target.value)}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
-                  <div><Lbl c="mb-1">Emotion <span className="text-cyan normal-case">(new)</span></Lbl><SelWrap><select className="field" value={emotion} onChange={e => setEmotion(e.target.value)}>{VOICE_EMOTIONS.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
+                <Range label="Pitch" value={pitchMul} min={0.7} max={1.3} step={0.05} onChange={setPitchMul} fmt={n => n.toFixed(2) + '×'} cy />
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div><Lbl>Speaking style</Lbl><SelWrap><select className="field" value={style} onChange={e => setStyle(e.target.value)}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
+                  <div><Lbl>Emotion <span className="text-cyan">(new)</span></Lbl><SelWrap><select className="field" value={emotion} onChange={e => setEmotion(e.target.value)}>{VOICE_EMOTIONS.map(e => <option key={e}>{e}</option>)}</select></SelWrap></div>
                 </div>
               </div>
             </Panel>
@@ -248,8 +248,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
               <div className="space-y-3">
                 <Range label="Stability" value={stability} min={0} max={100} onChange={setStability} fmt={n => n + '%'} />
                 <Range label="Clarity + Similarity" value={clarity} min={0} max={100} onChange={setClarity} fmt={n => n + '%'} cy />
-                <div className="flex items-center justify-between pt-0.5"><Lbl>Model capabilities</Lbl></div>
-                <div className="flex gap-1 flex-wrap -mt-1">{model.feats.map(f => <Chip key={f} t="vio">{f}</Chip>)}</div>
+                <div><Lbl>Model capabilities</Lbl><div className="flex flex-wrap gap-1.5">{model.feats.map(f => <Chip key={f} t="vio">{f}</Chip>)}</div></div>
               </div>
             </Panel>
           </div>
