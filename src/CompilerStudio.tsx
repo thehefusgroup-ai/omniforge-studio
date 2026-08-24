@@ -131,7 +131,7 @@ export default function CompilerStudio({ sources, addSource, removeSource, toast
         <div className="flex items-center gap-2"><Chip t="grn"><span className="w-1.5 h-1.5 rounded-full bg-grn live-dot" /> RENDER NODE READY</Chip><Chip t="amber">{sources.length} SOURCES</Chip></div>
       </div>
 
-      <div className="flex-1 grid grid-cols-[290px_1fr_300px] gap-3 min-h-0">
+      <div className="shrink-0 min-h-[520px] grid grid-cols-[290px_1fr_300px] gap-3">
         <Panel title="SOURCE SELECTION" c="min-h-0" pad={false} right={<div className="flex gap-1"><button className="text-[9px] font-mono text-dim hover:text-amber cursor-pointer" onClick={() => setSel(new Set(sources.map(s => s.id)))}>ALL</button><button className="text-[9px] font-mono text-dim hover:text-amber cursor-pointer" onClick={() => setSel(new Set())}>NONE</button></div>}>
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {sources.length === 0 && <Empty icon={<IcFolder s={22} />} title="Library empty" sub="Scripts, voice takes and plates from the other studios land here automatically." />}
