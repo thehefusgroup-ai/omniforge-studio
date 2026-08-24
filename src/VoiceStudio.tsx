@@ -11,6 +11,46 @@ export interface Take {
   style: string; emotion: string; at: number; text: string; audioUrl?: string;
 }
 
+interface VoicePrefs {
+  gender: 'ALL' | 'M' | 'F';
+  q: string;
+  voiceId: string;
+  text: string;
+  rateMul: number;
+  pitchMul: number;
+  stability: number;
+  clarity: number;
+  style: string;
+  emotion: string;
+}
+
+const DEFAULT_TEXT = "Welcome to OmniForge Studio — the all-in-one media creation suite. Paste your script here, pick a voice model, and render studio-grade narration in seconds. Let's make something people can't stop watching.";
+const DEFAULT_PREFS: VoicePrefs = {
+  gender: 'ALL', q: '', voiceId: 'm1', text: DEFAULT_TEXT,
+  rateMul: 1, pitchMul: 1, stability: 72, clarity: 80,
+  style: 'Conversational', emotion: 'None',
+};
+
+function loadPrefs(): VoicePrefs {
+  try {
+    const raw = localStorage.getItem('ofx.voice.prefs');
+    if (!raw) return DEFAULT_PREFS;
+    return { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<VoicePrefs>) };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+function loadTakes(): Take[] {
+  try {
+    const raw = localStorage.getItem('ofx.voice.takes');
+    const saved = raw ? JSON.parse(raw) : [];
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n));
 const estSecs = (chars: number, rate: number) => Math.max(2, Math.round(chars / 15 / rate));
 
@@ -20,23 +60,21 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   incoming: string | null;
   consumeIncoming: () => void;
 }) {
-  const [gender, setGender] = useState<'ALL' | 'M' | 'F'>('ALL');
-  const [q, setQ] = useState('');
-  const [voiceId, setVoiceId] = useState('m1');
-  const [text, setText] = useState(
-    "Welcome to OmniForge Studio — the all-in-one media creation suite. Paste your script here, pick a voice model, and render studio-grade narration in seconds. Let's make something people can't stop watching."
-  );
-  const [rateMul, setRateMul] = useState(1);
-  const [pitchMul, setPitchMul] = useState(1);
-  const [stability, setStability] = useState(72);
-  const [clarity, setClarity] = useState(80);
-  const [style, setStyle] = useState('Conversational');
-  const [emotion, setEmotion] = useState('None');
+  const [prefs, setPrefs] = useState<VoicePrefs>(loadPrefs);
+  const { gender, q, voiceId, text, rateMul, pitchMul, stability, clarity, style, emotion } = prefs;
   const [speaking, setSpeaking] = useState<null | 'preview' | 'render'>(null);
-  const [takes, setTakes] = useState<Take[]>([]);
+  const [takes, setTakes] = useState<Take[]>(loadTakes);
   const [queuePct, setQueuePct] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('ofx.voice.prefs', JSON.stringify(prefs));
+  }, [prefs]);
+
+  useEffect(() => {
+    localStorage.setItem('ofx.voice.takes', JSON.stringify(takes.slice(0, 20)));
+  }, [takes]);
 
   useEffect(() => () => {
     audioRef.current?.pause();
@@ -45,11 +83,14 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
 
   useEffect(() => {
     if (incoming) {
-      setText(incoming);
+      setPrefs(p => ({ ...p, text: incoming }));
       toast('Script loaded into voice synth from Script Studio', 'info');
       consumeIncoming();
     }
   }, [incoming, consumeIncoming, toast]);
+
+  const patch = <K extends keyof VoicePrefs>(key: K, value: VoicePrefs[K]) =>
+    setPrefs(p => ({ ...p, [key]: value }));
 
   const model = VOICES.find(v => v.id === voiceId) ?? VOICES[0];
 
@@ -69,7 +110,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
         voice_id: m.id,
         style,
         emotion,
-        speed: clamp(m.rate * rateMul, 0.5, 2),
+        speed: clamp(m.rate * rateMul, 0.5, 3),
         preview: mode === 'preview',
       }, controller.signal);
 
@@ -115,7 +156,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
         id: Math.random().toString(36).slice(2, 9), voiceId: model.id, voiceName: model.name,
         chars, secs: duration, style, emotion, at: Date.now(), text: text.trim(), audioUrl,
       };
-      setTakes(t => [take, ...t]);
+      setTakes(t => [take, ...t].slice(0, 20));
       addSource({ kind: 'voice', name: `VO Take — ${model.name} (${style})`, meta: `${chars} chars · ${duration}s · ${emotion !== 'None' ? emotion : 'neutral'} delivery`, duration });
       toast(`Real Gemini take rendered with ${model.name} — sent to Media Library`, 'ok');
     });
@@ -181,10 +222,10 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
 
       <div className="flex-1 grid grid-cols-[300px_1fr] gap-3 min-h-0">
         <Panel title={`VOICE MODELS · ${filtered.length}`} c="min-h-0" pad={false}
-          right={<Seg opts={[{ v: 'ALL' as const, label: 'ALL' }, { v: 'M' as const, label: '♂ 9' }, { v: 'F' as const, label: '♀ 9' }]} value={gender} onChange={setGender} c="p-[2px]!" />}>
+          right={<Seg opts={[{ v: 'ALL' as const, label: 'ALL' }, { v: 'M' as const, label: '♂ 9' }, { v: 'F' as const, label: '♀ 9' }]} value={gender} onChange={v => patch('gender', v)} c="p-[2px]!" />}>
           <div className="p-2 border-b border-line shrink-0">
             <div className="relative">
-              <input className="field pl-7!" placeholder="Search models or tags…" value={q} onChange={e => setQ(e.target.value)} />
+              <input className="field pl-7!" placeholder="Search models or tags…" value={q} onChange={e => patch('q', e.target.value)} />
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dim"><IcSearch s={12} /></span>
             </div>
           </div>
@@ -192,7 +233,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
             {filtered.map(v => {
               const active = v.id === voiceId;
               return (
-                <button key={v.id} onClick={() => setVoiceId(v.id)}
+                <button key={v.id} onClick={() => patch('voiceId', v.id)}
                   className={`w-full text-left rounded-[6px] border p-2.5 transition-all duration-150 cursor-pointer group ${active ? 'border-amber/60 bg-amber/[.06] shadow-[0_0_0_1px_rgba(255,178,36,.2)]' : 'border-line bg-bg2 hover:border-line2 hover:bg-bg3'}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
@@ -220,10 +261,10 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
         <div className="flex flex-col gap-3 min-h-0 min-w-0 overflow-y-auto pr-1">
           <Panel title="SCRIPT / NARRATION INPUT" c="shrink-0"
             right={<div className="flex items-center gap-2">
-              <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => { setText(t => t + ' <break time="0.5s"/> '); toast('SSML pause marker inserted', 'info'); }}>+ PAUSE 0.5s</button>
-              <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => { setText(t => t + ' <emphasis level="strong">key point</emphasis> '); toast('SSML emphasis inserted', 'info'); }}>+ EMPHASIS</button>
+              <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <break time="0.5s"/> ')}>+ PAUSE 0.5s</button>
+              <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <emphasis level="strong">key point</emphasis> ')}>+ EMPHASIS</button>
             </div>}>
-            <textarea className="field text-[12.5px]! h-[115px]" value={text} onChange={e => setText(e.target.value)} placeholder="Type or paste the narration to synthesize…" />
+            <textarea className="field text-[12.5px]! h-[115px]" value={text} onChange={e => patch('text', e.target.value)} placeholder="Type or paste the narration to synthesize…" />
             <div className="flex items-center justify-between mt-1.5">
               <span className="font-mono text-[9.5px] text-dim">{text.length} chars · ~{estSecs(text.length, model.rate * rateMul)}s at current speed</span>
               <span className="font-mono text-[9.5px] text-dim">Gemini TTS · <span className="text-cyan">{model.feats[0]}</span></span>
@@ -236,18 +277,19 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
           <div className="grid grid-cols-2 gap-3 shrink-0">
             <Panel title="DELIVERY PARAMETERS">
               <div className="space-y-3">
-                <Range label="Speed" value={rateMul} min={0.5} max={2} step={0.05} onChange={setRateMul} fmt={n => n.toFixed(2) + '×'} />
-                <Range label="Pitch" value={pitchMul} min={0.7} max={1.3} step={0.05} onChange={setPitchMul} fmt={n => n.toFixed(2) + '×'} cy />
+                <Range label="Speed" value={rateMul} min={0.5} max={3} step={0.05} onChange={n => patch('rateMul', n)} fmt={n => n.toFixed(2) + '×'} />
+                <div className="text-[9px] font-mono text-dim -mt-2">0.50× to 3.00× · extended range</div>
+                <Range label="Pitch" value={pitchMul} min={0.7} max={1.3} step={0.05} onChange={n => patch('pitchMul', n)} fmt={n => n.toFixed(2) + '×'} cy />
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div><Lbl>Speaking style</Lbl><SelWrap><select className="field" value={style} onChange={e => setStyle(e.target.value)}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
-                  <div><Lbl>Emotion <span className="text-cyan">(new)</span></Lbl><SelWrap><select className="field" value={emotion} onChange={e => setEmotion(e.target.value)}>{VOICE_EMOTIONS.map(e => <option key={e}>{e}</option>)}</select></SelWrap></div>
+                  <div><Lbl>Speaking style</Lbl><SelWrap><select className="field" value={style} onChange={e => patch('style', e.target.value)}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
+                  <div><Lbl>Emotion <span className="text-cyan">(new)</span></Lbl><SelWrap><select className="field" value={emotion} onChange={e => patch('emotion', e.target.value)}>{VOICE_EMOTIONS.map(e => <option key={e}>{e}</option>)}</select></SelWrap></div>
                 </div>
               </div>
             </Panel>
             <Panel title="ENGINE QUALITY">
               <div className="space-y-3">
-                <Range label="Stability" value={stability} min={0} max={100} onChange={setStability} fmt={n => n + '%'} />
-                <Range label="Clarity + Similarity" value={clarity} min={0} max={100} onChange={setClarity} fmt={n => n + '%'} cy />
+                <Range label="Stability" value={stability} min={0} max={100} onChange={n => patch('stability', n)} fmt={n => n + '%'} />
+                <Range label="Clarity + Similarity" value={clarity} min={0} max={100} onChange={n => patch('clarity', n)} fmt={n => n + '%'} cy />
                 <div><Lbl>Model capabilities</Lbl><div className="flex flex-wrap gap-1.5">{model.feats.map(f => <Chip key={f} t="vio">{f}</Chip>)}</div></div>
               </div>
             </Panel>
