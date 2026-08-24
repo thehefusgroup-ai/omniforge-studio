@@ -129,7 +129,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   const bars = useMemo(() => Array.from({ length: 44 }, (_, i) => 22 + ((model.id.charCodeAt(0) + i * 37) % 74)), [model.id]);
 
   const renderHistory = (
-    <Panel title={`RENDER HISTORY · ${takes.length}`} c="h-[150px] min-h-0 shrink-0" pad={false}>
+    <Panel title={`RENDER HISTORY · ${takes.length}`} c="h-[120px] min-h-0 shrink-0" pad={false}>
       <div className="p-2 border-b border-line shrink-0">
         <div className="text-[10px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
       </div>
@@ -145,6 +145,23 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
             {t.audioUrl && <audio className="w-full mt-2 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
           </div>
         ))}
+      </div>
+    </Panel>
+  );
+
+  const renderMonitor = (
+    <Panel title="RENDER MONITOR" c="min-h-[150px] shrink-0">
+      <div className="flex items-center gap-2">
+        <Btn v="cyan" s="sm" onClick={() => speak(text.split(/[.!?\n]/)[0] || text, model, 'preview')} disabled={!!speaking}><IcPlay s={11} /> Preview line</Btn>
+        <Btn v="amber" s="md" className="flex-1" onClick={renderTake} disabled={!!speaking}>{speaking === 'render' ? <Spinner s={13} /> : <IcWave s={13} />}{speaking === 'render' ? 'Rendering with Gemini…' : 'Render full take'}</Btn>
+        <Btn v="danger" s="md" onClick={stop} disabled={!speaking}><IcStop s={12} /> Stop</Btn>
+      </div>
+      <div className="mt-3 h-[72px] rounded-[6px] bg-bg0 border border-line flex items-center gap-[3px] px-3 overflow-hidden">
+        {bars.map((h, i) => <span key={i} className={`flex-1 rounded-full ${speaking ? 'wv-bar bg-amber' : 'bg-bg4'}`} style={{ height: `${h}%`, animationDelay: `${(i % 11) * 0.05}s`, animationDuration: `${0.35 + (i % 5) * 0.09}s` }} />)}
+      </div>
+      <div className="flex items-center justify-between mt-2.5">
+        <div className="font-mono text-[10px] text-dim">{speaking ? <span className="text-amber flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red rec-dot" /> {speaking === 'render' ? 'GENERATING WITH GEMINI…' : 'GENERATING PREVIEW…'}</span> : <span>IDLE · {model.name} armed · Gemini TTS</span>}</div>
+        <div className="w-[180px]"><Bar pct={queuePct} tone={queuePct >= 100 ? 'grn' : 'amber'} h={4} /></div>
       </div>
     </Panel>
   );
@@ -200,18 +217,21 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
           </div>
         </Panel>
 
-        <div className="flex flex-col gap-3 min-h-0 min-w-0">
+        <div className="flex flex-col gap-3 min-h-0 min-w-0 overflow-y-auto pr-1">
           <Panel title="SCRIPT / NARRATION INPUT" c="shrink-0"
             right={<div className="flex items-center gap-2">
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => { setText(t => t + ' <break time="0.5s"/> '); toast('SSML pause marker inserted', 'info'); }}>+ PAUSE 0.5s</button>
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => { setText(t => t + ' <emphasis level="strong">key point</emphasis> '); toast('SSML emphasis inserted', 'info'); }}>+ EMPHASIS</button>
             </div>}>
-            <textarea className="field text-[12.5px]! h-[130px]" value={text} onChange={e => setText(e.target.value)} placeholder="Type or paste the narration to synthesize…" />
+            <textarea className="field text-[12.5px]! h-[115px]" value={text} onChange={e => setText(e.target.value)} placeholder="Type or paste the narration to synthesize…" />
             <div className="flex items-center justify-between mt-1.5">
               <span className="font-mono text-[9.5px] text-dim">{text.length} chars · ~{estSecs(text.length, model.rate * rateMul)}s at current speed</span>
               <span className="font-mono text-[9.5px] text-dim">Gemini TTS · <span className="text-cyan">{model.feats[0]}</span></span>
             </div>
           </Panel>
+
+          {renderMonitor}
+          {renderHistory}
 
           <div className="grid grid-cols-2 gap-3 shrink-0">
             <Panel title="DELIVERY PARAMETERS">
@@ -233,23 +253,6 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
               </div>
             </Panel>
           </div>
-
-          <Panel title="RENDER MONITOR" c="min-h-[150px] flex-1">
-            <div className="flex items-center gap-2">
-              <Btn v="cyan" s="sm" onClick={() => speak(text.split(/[.!?\n]/)[0] || text, model, 'preview')} disabled={!!speaking}><IcPlay s={11} /> Preview line</Btn>
-              <Btn v="amber" s="md" className="flex-1" onClick={renderTake} disabled={!!speaking}>{speaking === 'render' ? <Spinner s={13} /> : <IcWave s={13} />}{speaking === 'render' ? 'Rendering with Gemini…' : 'Render full take'}</Btn>
-              <Btn v="danger" s="md" onClick={stop} disabled={!speaking}><IcStop s={12} /> Stop</Btn>
-            </div>
-            <div className="mt-3 h-[72px] rounded-[6px] bg-bg0 border border-line flex items-center gap-[3px] px-3 overflow-hidden">
-              {bars.map((h, i) => <span key={i} className={`flex-1 rounded-full ${speaking ? 'wv-bar bg-amber' : 'bg-bg4'}`} style={{ height: `${h}%`, animationDelay: `${(i % 11) * 0.05}s`, animationDuration: `${0.35 + (i % 5) * 0.09}s` }} />)}
-            </div>
-            <div className="flex items-center justify-between mt-2.5">
-              <div className="font-mono text-[10px] text-dim">{speaking ? <span className="text-amber flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red rec-dot" /> {speaking === 'render' ? 'GENERATING WITH GEMINI…' : 'GENERATING PREVIEW…'}</span> : <span>IDLE · {model.name} armed · Gemini TTS</span>}</div>
-              <div className="w-[180px]"><Bar pct={queuePct} tone={queuePct >= 100 ? 'grn' : 'amber'} h={4} /></div>
-            </div>
-          </Panel>
-
-          {renderHistory}
         </div>
       </div>
     </div>
