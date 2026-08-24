@@ -141,7 +141,6 @@ export default function App() {
 
   return (
     <div className="h-full flex flex-col workspace-bg text-ink select-none">
-      {/* ============ TITLE BAR ============ */}
       <header className="h-[42px] shrink-0 bg-bg1 border-b border-line flex items-center px-3 gap-3 relative z-40">
         <div className="flex items-center gap-2.5">
           <IcLogo s={22} />
@@ -150,34 +149,17 @@ export default function App() {
             <div className="font-mono text-[8px] text-dim mt-[3px]">ALL-IN-ONE AI MEDIA CREATION · v2.4.1</div>
           </div>
         </div>
-
         <nav className="flex items-center gap-0.5 ml-4 h-full">
           {(Object.keys(MENUS) as (keyof typeof MENUS)[]).map(m => (
             <div key={m} className="relative h-full flex items-center">
-              <button onClick={() => setMenu(menu === m ? null : m)}
-                className={`px-2.5 py-1 rounded-[5px] text-[11.5px] capitalize transition-colors cursor-pointer ${menu === m ? 'bg-bg3 text-amber' : 'text-mut hover:text-ink hover:bg-bg2'}`}>
-                {m}
-              </button>
-              {menu === m && (
-                <div className="absolute top-full left-0 mt-1 w-[240px] panel shadow-[0_12px_40px_rgba(0,0,0,.55)] py-1 pop-in z-50">
-                  {MENUS[m].map(it => (
-                    <button key={it.label} onClick={() => { it.fn(); setMenu(null); }}
-                      className="w-full text-left px-3 py-1.5 text-[11.5px] text-mut hover:text-ink hover:bg-bg3 transition-colors cursor-pointer">
-                      {it.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button onClick={() => setMenu(menu === m ? null : m)} className={`px-2.5 py-1 rounded-[5px] text-[11.5px] capitalize transition-colors cursor-pointer ${menu === m ? 'bg-bg3 text-amber' : 'text-mut hover:text-ink hover:bg-bg2'}`}>{m}</button>
+              {menu === m && <div className="absolute top-full left-0 mt-1 w-[240px] panel shadow-[0_12px_40px_rgba(0,0,0,.55)] py-1 pop-in z-50">{MENUS[m].map(it => <button key={it.label} onClick={() => { it.fn(); setMenu(null); }} className="w-full text-left px-3 py-1.5 text-[11.5px] text-mut hover:text-ink hover:bg-bg3 transition-colors cursor-pointer">{it.label}</button>)}</div>}
             </div>
           ))}
         </nav>
-
         <div className="ml-auto flex items-center gap-2.5">
           <span className="font-mono text-[9.5px] text-dim hidden lg:block">PROJECT: untitled_campaign.ofx</span>
-          <button onClick={() => setShowSettings(true)} className="flex items-center gap-1.5 px-2 py-1 rounded-[5px] border border-line text-[10px] font-mono text-mut hover:text-amber hover:border-amber/40 transition-colors cursor-pointer">
-            <IcGear s={11} /> API
-            <span className={`w-1.5 h-1.5 rounded-full ${settings.verified.tts || settings.verified.llm || settings.verified.img ? 'bg-grn live-dot' : 'bg-dim'}`} />
-          </button>
+          <button onClick={() => setShowSettings(true)} className="flex items-center gap-1.5 px-2 py-1 rounded-[5px] border border-line text-[10px] font-mono text-mut hover:text-amber hover:border-amber/40 transition-colors cursor-pointer"><IcGear s={11} /> API <span className={`w-1.5 h-1.5 rounded-full ${settings.verified.tts || settings.verified.llm || settings.verified.img ? 'bg-grn live-dot' : 'bg-dim'}`} /></button>
           <span className="flex items-center gap-1.5 font-mono text-[9.5px] text-red"><span className="w-2 h-2 rounded-full bg-red rec-dot" />REC</span>
           <div className="flex items-center ml-1">
             <button className="w-8 h-7 flex items-center justify-center text-dim hover:text-ink hover:bg-bg3 rounded-[4px] transition-colors cursor-pointer" onClick={() => toast('Minimize is decorative in the web build', 'info')}><IcMin s={12} /></button>
@@ -188,128 +170,74 @@ export default function App() {
         {menu && <div className="fixed inset-0 z-30" onClick={() => setMenu(null)} />}
       </header>
 
-      {/* ============ BODY ============ */}
       <div className="flex-1 flex min-h-0">
-        {/* rail */}
         <aside className="w-[86px] shrink-0 bg-bg1 border-r border-line flex flex-col items-center py-3 gap-1.5 z-20">
           {NAV.map((n, i) => {
             const active = area === n.id;
             const Ico = n.icon;
-            return (
-              <button key={n.id} onClick={() => setArea(n.id)}
-                className={`w-[70px] py-2.5 rounded-[7px] flex flex-col items-center gap-1 transition-all duration-150 cursor-pointer relative group ${active ? 'bg-amber/[.09] text-amber shadow-[inset_0_0_0_1px_rgba(255,178,36,.35)]' : 'text-dim hover:text-mut hover:bg-bg2'}`}>
-                {active && <span className="absolute left-[-8px] top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r bg-amber" />}
-                <Ico s={17} />
-                <span className="font-disp font-semibold text-[9.5px] tracking-[.09em] uppercase">{n.label}</span>
-                <span className="font-mono text-[7px] text-dim opacity-0 group-hover:opacity-100 transition-opacity">CTRL+{i + 1}</span>
-              </button>
-            );
+            return <button key={n.id} onClick={() => setArea(n.id)} className={`w-[70px] py-2.5 rounded-[7px] flex flex-col items-center gap-1 transition-all duration-150 cursor-pointer relative group ${active ? 'bg-amber/[.09] text-amber shadow-[inset_0_0_0_1px_rgba(255,178,36,.35)]' : 'text-dim hover:text-mut hover:bg-bg2'}`}>
+              {active && <span className="absolute left-[-8px] top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r bg-amber" />}
+              <Ico s={17} /><span className="font-disp font-semibold text-[9.5px] tracking-[.09em] uppercase">{n.label}</span><span className="font-mono text-[7px] text-dim opacity-0 group-hover:opacity-100 transition-opacity">CTRL+{i + 1}</span>
+            </button>;
           })}
           <div className="mt-auto flex flex-col items-center gap-2">
-            <button onClick={() => setArea('compiler')} className="relative text-dim hover:text-cyan transition-colors cursor-pointer" title="Scheduled tasks">
-              <IcBolt s={16} />
-              {tasks.filter(t => t.status === 'pending').length > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-cyan text-[7px] font-mono text-bg0 flex items-center justify-center font-bold">{tasks.filter(t => t.status === 'pending').length}</span>
-              )}
-            </button>
+            <button onClick={() => setArea('compiler')} className="relative text-dim hover:text-cyan transition-colors cursor-pointer" title="Scheduled tasks"><IcBolt s={16} />{tasks.filter(t => t.status === 'pending').length > 0 && <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-cyan text-[7px] font-mono text-bg0 flex items-center justify-center font-bold">{tasks.filter(t => t.status === 'pending').length}</span>}</button>
             <button onClick={() => setShowSettings(true)} className="text-dim hover:text-amber transition-colors cursor-pointer" title="API & engine settings"><IcGear s={16} /></button>
           </div>
         </aside>
 
-        {/* workspace */}
         <main className="flex-1 min-w-0 min-h-0 relative">
-          <div key={area} className="absolute inset-0">
-            {area === 'script' && <ScriptStudio addSource={addSource} toast={toast} sendToVoice={t => { setIncomingVoice(t); setArea('voice'); }} />}
-            {area === 'voice' && <VoiceStudio addSource={addSource} toast={toast} incoming={incomingVoice} consumeIncoming={() => setIncomingVoice(null)} />}
-            {area === 'visual' && <VisualStudio addSource={addSource} toast={toast} />}
-            {area === 'compiler' && <CompilerStudio sources={sources} addSource={addSource} removeSource={removeSource} toast={toast} tasks={tasks} setTasks={setTasks} />}
+          <div className={`absolute inset-0 ${area === 'script' ? '' : 'hidden'}`}>
+            <ScriptStudio addSource={addSource} toast={toast} sendToVoice={t => { setIncomingVoice(t); setArea('voice'); }} />
+          </div>
+          <div className={`absolute inset-0 ${area === 'voice' ? '' : 'hidden'}`}>
+            <VoiceStudio addSource={addSource} toast={toast} incoming={incomingVoice} consumeIncoming={() => setIncomingVoice(null)} />
+          </div>
+          <div className={`absolute inset-0 ${area === 'visual' ? '' : 'hidden'}`}>
+            <VisualStudio addSource={addSource} toast={toast} />
+          </div>
+          <div className={`absolute inset-0 ${area === 'compiler' ? '' : 'hidden'}`}>
+            <CompilerStudio sources={sources} addSource={addSource} removeSource={removeSource} toast={toast} tasks={tasks} setTasks={setTasks} />
           </div>
         </main>
       </div>
 
-      {/* ============ STATUS BAR ============ */}
       {showBar && <StatusBar tasks={tasks} settings={settings} />}
 
-      {/* ============ SETTINGS MODAL ============ */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 fade-in" onClick={() => setShowSettings(false)}>
           <div className="w-[620px] max-h-[84vh] panel shadow-[0_24px_80px_rgba(0,0,0,.6)] pop-in flex flex-col" onClick={e => e.stopPropagation()}>
-            <header className="flex items-center justify-between px-4 py-3 border-b border-line shrink-0">
-              <div className="flex items-center gap-2">
-                <IcGear s={15} c="text-amber" />
-                <span className="font-disp font-bold text-[14px]">API & Engine Settings</span>
-              </div>
-              <Btn v="ghost" s="xs" onClick={() => setShowSettings(false)}><IcClose s={12} /></Btn>
-            </header>
+            <header className="flex items-center justify-between px-4 py-3 border-b border-line shrink-0"><div className="flex items-center gap-2"><IcGear s={15} c="text-amber" /><span className="font-disp font-bold text-[14px]">API & Engine Settings</span></div><Btn v="ghost" s="xs" onClick={() => setShowSettings(false)}><IcClose s={12} /></Btn></header>
             <div className="p-4 space-y-4 overflow-y-auto">
               {([
                 { k: 'tts' as const, name: 'Text-to-Speech API', desc: 'Powers the 18 voice models in Voice Studio', providers: TTS_PROVIDERS, icon: IcMic, tone: 'text-cyan' },
                 { k: 'llm' as const, name: 'Script Generation LLM', desc: 'Powers the premium content engine', providers: LLM_PROVIDERS, icon: IcDoc, tone: 'text-amber' },
                 { k: 'img' as const, name: 'Image / Video Generation API', desc: 'Powers plate & clip generation in Visual Studio', providers: IMG_PROVIDERS, icon: IcImage, tone: 'text-vio' },
-              ]).map(sec => (
-                <div key={sec.k} className="rounded-[8px] border border-line bg-bg2 p-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <sec.icon s={16} c={sec.tone} />
-                    <div className="flex-1">
-                      <div className="font-disp font-semibold text-[12.5px]">{sec.name}</div>
-                      <div className="text-[10px] text-dim">{sec.desc}</div>
-                    </div>
-                    {settings.verified[sec.k] ? <Chip t="grn"><IcCheck s={8} /> VERIFIED</Chip> : <Chip>NOT VERIFIED</Chip>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <div>
-                      <Lbl c="mb-1">Provider</Lbl>
-                      <SelWrap>
-                        <select className="field" value={settings.providers[sec.k]}
-                          onChange={e => setSettings(s => ({ ...s, providers: { ...s.providers, [sec.k]: e.target.value }, verified: { ...s.verified, [sec.k]: false } }))}>
-                          {sec.providers.map(p => <option key={p}>{p}</option>)}
-                        </select>
-                      </SelWrap>
-                    </div>
-                    <div>
-                      <Lbl c="mb-1">API key (stored locally)</Lbl>
-                      <div className="flex gap-1.5">
-                        <input type="password" className="field font-mono text-[11px]!" placeholder={`sk-… ${sec.k}`} value={settings.keys[sec.k]}
-                          onChange={e => setSettings(s => ({ ...s, keys: { ...s.keys, [sec.k]: e.target.value }, verified: { ...s.verified, [sec.k]: false } }))} />
-                        <Btn v="cyan" s="sm" onClick={() => verifyKey(sec.k)} disabled={!settings.keys[sec.k]}>Test</Btn>
-                      </div>
-                    </div>
-                  </div>
+              ]).map(sec => <div key={sec.k} className="rounded-[8px] border border-line bg-bg2 p-3.5">
+                <div className="flex items-center gap-2.5"><sec.icon s={16} c={sec.tone} /><div className="flex-1"><div className="font-disp font-semibold text-[12.5px]">{sec.name}</div><div className="text-[10px] text-dim">{sec.desc}</div></div>{settings.verified[sec.k] ? <Chip t="grn"><IcCheck s={8} /> VERIFIED</Chip> : <Chip>NOT VERIFIED</Chip>}</div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <div><Lbl c="mb-1">Provider</Lbl><SelWrap><select className="field" value={settings.providers[sec.k]} onChange={e => setSettings(s => ({ ...s, providers: { ...s.providers, [sec.k]: e.target.value }, verified: { ...s.verified, [sec.k]: false } }))}>{sec.providers.map(p => <option key={p}>{p}</option>)}</select></SelWrap></div>
+                  <div><Lbl c="mb-1">API key (stored locally)</Lbl><div className="flex gap-1.5"><input type="password" className="field font-mono text-[11px]!" placeholder={`sk-… ${sec.k}`} value={settings.keys[sec.k]} onChange={e => setSettings(s => ({ ...s, keys: { ...s.keys, [sec.k]: e.target.value }, verified: { ...s.verified, [sec.k]: false } }))} /><Btn v="cyan" s="sm" onClick={() => verifyKey(sec.k)} disabled={!settings.keys[sec.k]}>Test</Btn></div></div>
                 </div>
-              ))}
-              <div className="rounded-[8px] border border-amber/25 bg-amber/[.05] p-3 flex gap-2">
-                <IcAlert s={13} c="text-amber shrink-0 mt-0.5" />
-                <p className="text-[10.5px] text-mut leading-relaxed">
-                  Keys never leave this machine — they are stored in your browser's local storage and sent only to the provider you select.
-                  Without keys, OmniForge runs its built-in sandbox engines (on-device speech synthesis and the offline script core), so every studio stays fully functional.
-                </p>
-              </div>
+              </div>)}
+              <div className="rounded-[8px] border border-amber/25 bg-amber/[.05] p-3 flex gap-2"><IcAlert s={13} c="text-amber shrink-0 mt-0.5" /><p className="text-[10.5px] text-mut leading-relaxed">Keys never leave this machine — they are stored in your browser's local storage and sent only to the provider you select. Without keys, OmniForge runs its built-in sandbox engines (on-device speech synthesis and the offline script core), so every studio stays fully functional.</p></div>
             </div>
-            <footer className="px-4 py-3 border-t border-line flex justify-end gap-2 shrink-0">
-              <Btn v="ghost" s="sm" onClick={() => setShowSettings(false)}>Close</Btn>
-              <Btn v="amber" s="sm" onClick={() => { setShowSettings(false); toast('Settings saved to local workspace', 'ok'); }}><IcCheck s={11} /> Save settings</Btn>
-            </footer>
+            <footer className="px-4 py-3 border-t border-line flex justify-end gap-2 shrink-0"><Btn v="ghost" s="sm" onClick={() => setShowSettings(false)}>Close</Btn><Btn v="amber" s="sm" onClick={() => { setShowSettings(false); toast('Settings saved to local workspace', 'ok'); }}><IcCheck s={11} /> Save settings</Btn></footer>
           </div>
         </div>
       )}
 
-      {/* ============ TOASTS ============ */}
       <div className="fixed bottom-4 right-4 z-[60] space-y-2 w-[340px]">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast-in panel px-3 py-2.5 flex items-start gap-2.5 shadow-[0_10px_36px_rgba(0,0,0,.5)] border-l-2 ${t.kind === 'ok' ? 'border-l-grn' : t.kind === 'err' ? 'border-l-red' : 'border-l-cyan'}`}>
-            <span className={`mt-0.5 shrink-0 ${t.kind === 'ok' ? 'text-grn' : t.kind === 'err' ? 'text-red' : 'text-cyan'}`}>
-              {t.kind === 'err' ? <IcAlert s={13} /> : t.kind === 'ok' ? <IcCheck s={13} /> : <IcSpark s={13} />}
-            </span>
-            <span className="text-[11.5px] text-ink/90 leading-snug">{t.msg}</span>
-            <button className="ml-auto text-dim hover:text-ink cursor-pointer shrink-0" onClick={() => setToasts(x => x.filter(y => y.id !== t.id))}><IcClose s={10} /></button>
-          </div>
-        ))}
+        {toasts.map(t => <div key={t.id} className={`toast-in panel px-3 py-2.5 flex items-start gap-2.5 shadow-[0_10px_36px_rgba(0,0,0,.5)] border-l-2 ${t.kind === 'ok' ? 'border-l-grn' : t.kind === 'err' ? 'border-l-red' : 'border-l-cyan'}`}>
+          <span className={`mt-0.5 shrink-0 ${t.kind === 'ok' ? 'text-grn' : t.kind === 'err' ? 'text-red' : 'text-cyan'}`}>{t.kind === 'err' ? <IcAlert s={13} /> : t.kind === 'ok' ? <IcCheck s={13} /> : <IcSpark s={13} />}</span>
+          <span className="text-[11.5px] text-ink/90 leading-snug">{t.msg}</span>
+          <button className="ml-auto text-dim hover:text-ink cursor-pointer shrink-0" onClick={() => setToasts(x => x.filter(y => y.id !== t.id))}><IcClose s={10} /></button>
+        </div>)}
       </div>
     </div>
   );
 }
 
-/* ============ STATUS BAR ============ */
 function StatusBar({ tasks, settings }: { tasks: Task[]; settings: Settings }) {
   const [tc, setTc] = useState('00:00:00:00');
   const [cpu, setCpu] = useState(34);
@@ -330,23 +258,15 @@ function StatusBar({ tasks, settings }: { tasks: Task[]; settings: Settings }) {
 
   const next = tasks.filter(t => t.status === 'pending').sort((a, b) => a.at - b.at)[0];
 
-  return (
-    <footer className="h-[30px] shrink-0 bg-bg1 border-t border-line flex items-center px-3 gap-4 text-[9.5px] font-mono text-dim z-20">
-      <span className="flex items-center gap-1.5 text-grn"><IcRadio s={10} /> NEURAL CORES ONLINE</span>
-      <span className="hidden md:block">TTS {settings.providers.tts.split(' ')[0].toUpperCase()}</span>
-      <span className="hidden md:block">LLM {settings.providers.llm.split(' ')[1] ?? settings.providers.llm.split(' ')[0]}</span>
-      <span className="ml-auto" />
-      {next && <span className="text-cyan">NEXT TASK −{Math.max(0, Math.floor((next.at - Date.now()) / 1000))}s</span>}
-      <span className="text-amber tracking-[.12em]">{tc}</span>
-      <span className="flex items-center gap-1">CPU
-        <span className="w-[52px] h-[5px] rounded-full bg-bg3 overflow-hidden inline-block"><span className="block h-full bg-cyan transition-[width] duration-700" style={{ width: cpu + '%' }} /></span>
-        {Math.round(cpu)}%
-      </span>
-      <span className="flex items-center gap-1">GPU
-        <span className="w-[52px] h-[5px] rounded-full bg-bg3 overflow-hidden inline-block"><span className="block h-full bg-amber transition-[width] duration-700" style={{ width: gpu + '%' }} /></span>
-        {Math.round(gpu)}%
-      </span>
-      <span className="hidden lg:block text-dim">CTRL+1…4 SWITCH STUDIO</span>
-    </footer>
-  );
+  return <footer className="h-[30px] shrink-0 bg-bg1 border-t border-line flex items-center px-3 gap-4 text-[9.5px] font-mono text-dim z-20">
+    <span className="flex items-center gap-1.5 text-grn"><IcRadio s={10} /> NEURAL CORES ONLINE</span>
+    <span className="hidden md:block">TTS {settings.providers.tts.split(' ')[0].toUpperCase()}</span>
+    <span className="hidden md:block">LLM {settings.providers.llm.split(' ')[1] ?? settings.providers.llm.split(' ')[0]}</span>
+    <span className="ml-auto" />
+    {next && <span className="text-cyan">NEXT TASK −{Math.max(0, Math.floor((next.at - Date.now()) / 1000))}s</span>}
+    <span className="text-amber tracking-[.12em]">{tc}</span>
+    <span className="flex items-center gap-1">CPU <span className="w-[52px] h-[5px] rounded-full bg-bg3 overflow-hidden inline-block"><span className="block h-full bg-cyan transition-[width] duration-700" style={{ width: cpu + '%' }} /></span>{Math.round(cpu)}%</span>
+    <span className="flex items-center gap-1">GPU <span className="w-[52px] h-[5px] rounded-full bg-bg3 overflow-hidden inline-block"><span className="block h-full bg-amber transition-[width] duration-700" style={{ width: gpu + '%' }} /></span>{Math.round(gpu)}%</span>
+    <span className="hidden lg:block text-dim">CTRL+1…4 SWITCH STUDIO</span>
+  </footer>;
 }
