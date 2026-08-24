@@ -125,7 +125,7 @@ export default function CompilerStudio({ sources, addSource, removeSource, toast
   const doneTasks = tasks.filter(t => t.status !== 'pending');
 
   return (
-    <div className="h-full flex flex-col gap-3 p-3 min-h-0 area-enter">
+    <div className="h-full flex flex-col gap-3 p-3 min-h-0 area-enter overflow-y-auto overflow-x-hidden pb-8">
       <div className="flex items-center justify-between shrink-0">
         <div><h1 className="font-disp font-bold text-[19px] leading-tight tracking-tight">Media Compiler</h1><div className="text-[11px] text-dim mt-0.5">Manual & one-click production · task scheduler · final format delivery</div></div>
         <div className="flex items-center gap-2"><Chip t="grn"><span className="w-1.5 h-1.5 rounded-full bg-grn live-dot" /> RENDER NODE READY</Chip><Chip t="amber">{sources.length} SOURCES</Chip></div>
