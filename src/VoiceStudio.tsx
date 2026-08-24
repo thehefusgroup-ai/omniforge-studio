@@ -128,6 +128,27 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
 
   const bars = useMemo(() => Array.from({ length: 44 }, (_, i) => 22 + ((model.id.charCodeAt(0) + i * 37) % 74)), [model.id]);
 
+  const renderHistory = (
+    <Panel title={`RENDER HISTORY · ${takes.length}`} c="h-[150px] min-h-0 shrink-0" pad={false}>
+      <div className="p-2 border-b border-line shrink-0">
+        <div className="text-[10px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        {takes.length === 0 ? <Empty icon={<IcWave s={24} />} title="No takes yet" sub="Render a full take to populate the history." /> : takes.map(t => (
+          <div key={t.id} className="rounded-[6px] border border-line bg-bg2 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-disp font-semibold text-[11.5px] text-ink">{t.voiceName}</div>
+              <Chip t="grn"><IcCheck s={9} /> DONE</Chip>
+            </div>
+            <div className="font-mono text-[9px] text-dim mt-1">{t.secs}s · {t.chars} chars · {t.style}{t.emotion !== 'None' ? ` · ${t.emotion}` : ''}</div>
+            <p className="text-[10px] text-mut mt-2 line-clamp-2 leading-relaxed">{t.text}</p>
+            {t.audioUrl && <audio className="w-full mt-2 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+
   return (
     <div className="h-full flex flex-col gap-3 p-3 min-h-0 area-enter">
       <div className="flex items-center justify-between shrink-0">
@@ -141,7 +162,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-[300px_1fr_280px] gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-[300px_1fr] gap-3 min-h-0">
         <Panel title={`VOICE MODELS · ${filtered.length}`} c="min-h-0" pad={false}
           right={<Seg opts={[{ v: 'ALL' as const, label: 'ALL' }, { v: 'M' as const, label: '♂ 9' }, { v: 'F' as const, label: '♀ 9' }]} value={gender} onChange={setGender} c="p-[2px]!" />}>
           <div className="p-2 border-b border-line shrink-0">
@@ -213,42 +234,23 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
             </Panel>
           </div>
 
-          <Panel title="RENDER MONITOR" c="flex-1 min-h-0">
+          <Panel title="RENDER MONITOR" c="min-h-[150px] flex-1">
             <div className="flex items-center gap-2">
               <Btn v="cyan" s="sm" onClick={() => speak(text.split(/[.!?\n]/)[0] || text, model, 'preview')} disabled={!!speaking}><IcPlay s={11} /> Preview line</Btn>
               <Btn v="amber" s="md" className="flex-1" onClick={renderTake} disabled={!!speaking}>{speaking === 'render' ? <Spinner s={13} /> : <IcWave s={13} />}{speaking === 'render' ? 'Rendering with Gemini…' : 'Render full take'}</Btn>
               <Btn v="danger" s="md" onClick={stop} disabled={!speaking}><IcStop s={12} /> Stop</Btn>
             </div>
-
             <div className="mt-3 h-[72px] rounded-[6px] bg-bg0 border border-line flex items-center gap-[3px] px-3 overflow-hidden">
               {bars.map((h, i) => <span key={i} className={`flex-1 rounded-full ${speaking ? 'wv-bar bg-amber' : 'bg-bg4'}`} style={{ height: `${h}%`, animationDelay: `${(i % 11) * 0.05}s`, animationDuration: `${0.35 + (i % 5) * 0.09}s` }} />)}
             </div>
-
             <div className="flex items-center justify-between mt-2.5">
               <div className="font-mono text-[10px] text-dim">{speaking ? <span className="text-amber flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red rec-dot" /> {speaking === 'render' ? 'GENERATING WITH GEMINI…' : 'GENERATING PREVIEW…'}</span> : <span>IDLE · {model.name} armed · Gemini TTS</span>}</div>
               <div className="w-[180px]"><Bar pct={queuePct} tone={queuePct >= 100 ? 'grn' : 'amber'} h={4} /></div>
             </div>
           </Panel>
-        </div>
 
-        <Panel title={`RENDER HISTORY · ${takes.length}`} c="min-h-0" pad={false}>
-          <div className="p-2 border-b border-line shrink-0">
-            <div className="text-[10px] text-dim leading-relaxed">Completed takes are sent directly to the Media Library for compilation.</div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {takes.length === 0 ? <Empty icon={<IcWave s={24} />} title="No takes yet" sub="Render a full take to populate the history." /> : takes.map(t => (
-              <div key={t.id} className="rounded-[6px] border border-line bg-bg2 p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-disp font-semibold text-[11.5px] text-ink">{t.voiceName}</div>
-                  <Chip t="grn"><IcCheck s={9} /> DONE</Chip>
-                </div>
-                <div className="font-mono text-[9px] text-dim mt-1">{t.secs}s · {t.chars} chars · {t.style}{t.emotion !== 'None' ? ` · ${t.emotion}` : ''}</div>
-                <p className="text-[10px] text-mut mt-2 line-clamp-3 leading-relaxed">{t.text}</p>
-                {t.audioUrl && <audio className="w-full mt-2 h-7" controls src={freeFacelessOutputUrl(t.audioUrl)} />}
-              </div>
-            ))}
-          </div>
-        </Panel>
+          {renderHistory}
+        </div>
       </div>
     </div>
   );
