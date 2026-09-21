@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { VOICES, VOICE_STYLES, VOICE_EMOTIONS, type VoiceModel } from './voices';
-import { synthesizeFreeFacelessVoice, freeFacelessOutputUrl } from './freefacelessApi';
+import { synthesizeFreeFacelessVoice, freeFacelessOutputUrl, getFreeFacelessHealth, type VoiceEngine } from './freefacelessApi';
 import {
   Btn, Lbl, Panel, Chip, Range, Seg, SelWrap, Empty, Bar,
   IcPlay, IcStop, IcWave, IcTrash, IcCheck, IcSpark, IcSend, IcRefresh, Spinner, IcSearch,
@@ -26,7 +26,7 @@ interface VoicePrefs {
 
 const DEFAULT_TEXT = "Welcome to OmniForge Studio — the all-in-one media creation suite. Paste your script here, pick a voice model, and render studio-grade narration in seconds. Let's make something people can't stop watching.";
 const DEFAULT_PREFS: VoicePrefs = {
-  gender: 'ALL', q: '', voiceId: 'm1', text: DEFAULT_TEXT,
+  engine: 'gemini', gender: 'ALL', q: '', voiceId: 'm1', text: DEFAULT_TEXT,
   rateMul: 1, pitchMul: 1, stability: 72, clarity: 80,
   style: 'Conversational', emotion: 'None',
 };
@@ -61,8 +61,9 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   consumeIncoming: () => void;
 }) {
   const [prefs, setPrefs] = useState<VoicePrefs>(loadPrefs);
-  const { gender, q, voiceId, text, rateMul, pitchMul, stability, clarity, style, emotion } = prefs;
+  const { engine, gender, q, voiceId, text, rateMul, pitchMul, stability, clarity, style, emotion } = prefs;
   const [speaking, setSpeaking] = useState<null | 'preview' | 'render'>(null);
+  const [availableEngines, setAvailableEngines] = useState<VoiceEngine[]>(['gemini']);
   const [takes, setTakes] = useState<Take[]>(loadTakes);
   const [queuePct, setQueuePct] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -71,6 +72,19 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   useEffect(() => {
     localStorage.setItem('ofx.voice.prefs', JSON.stringify(prefs));
   }, [prefs]);
+
+  useEffect(() => {
+    let alive = true;
+    getFreeFacelessHealth().then(health => {
+      if (!alive || !health?.voice?.available_engines?.length) return;
+      const engines = health.voice.available_engines;
+      setAvailableEngines(engines);
+      if (!engines.includes(prefs.engine)) {
+        setPrefs(p => ({ ...p, engine: health.voice.default_engine }));
+      }
+    });
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('ofx.voice.takes', JSON.stringify(takes.slice(0, 20)));
@@ -107,10 +121,12 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
     try {
       const result = await synthesizeFreeFacelessVoice({
         text: txt.trim(),
+        engine,
         voice_id: m.id,
         style,
         emotion,
         speed: clamp(m.rate * rateMul, 0.5, 3),
+        pitch: clamp(m.pitch * pitchMul, 0.5, 2),
         preview: mode === 'preview',
       }, controller.signal);
 
@@ -135,7 +151,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
       if (controller.signal.aborted) return;
       setSpeaking(null);
       setQueuePct(0);
-      toast(err?.message || 'FreeFaceless Gemini TTS failed', 'err');
+      toast(err?.message || `FreeFaceless ${engine} TTS failed`, 'err');
     }
   };
 
@@ -148,6 +164,10 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   };
 
   const renderTake = () => {
+    if (!availableEngines.includes(engine)) {
+      toast(`${engine === 'kokoro' ? 'Kokoro' : 'Selected'} voice engine is not available in the backend yet`, 'err');
+      return;
+    }
     if (!text.trim()) { toast('Script is empty — nothing to render', 'err'); return; }
 
     speak(text, model, 'render', (duration, audioUrl) => {
@@ -158,7 +178,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
       };
       setTakes(t => [take, ...t].slice(0, 20));
       addSource({ kind: 'voice', name: `VO Take — ${model.name} (${style})`, meta: `${chars} chars · ${duration}s · ${emotion !== 'None' ? emotion : 'neutral'} delivery`, duration });
-      toast(`Real Gemini take rendered with ${model.name} — sent to Media Library`, 'ok');
+      toast(`Real ${engine.toUpperCase()} take rendered with ${model.name} — sent to Media Library`, 'ok');
     });
   };
 
@@ -194,14 +214,14 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
     <Panel title="RENDER MONITOR" c="min-h-[150px] shrink-0">
       <div className="flex items-center gap-2">
         <Btn v="cyan" s="sm" onClick={() => speak(text.split(/[.!?\n]/)[0] || text, model, 'preview')} disabled={!!speaking}><IcPlay s={11} /> Preview line</Btn>
-        <Btn v="amber" s="md" className="flex-1" onClick={renderTake} disabled={!!speaking}>{speaking === 'render' ? <Spinner s={13} /> : <IcWave s={13} />}{speaking === 'render' ? 'Rendering with Gemini…' : 'Render full take'}</Btn>
+        <Btn v="amber" s="md" className="flex-1" onClick={renderTake} disabled={!!speaking}>{speaking === 'render' ? <Spinner s={13} /> : <IcWave s={13} />}{speaking === 'render' ? `Rendering with ${engine.toUpperCase()}…` : 'Render full take'}</Btn>
         <Btn v="danger" s="md" onClick={stop} disabled={!speaking}><IcStop s={12} /> Stop</Btn>
       </div>
       <div className="mt-3 h-[72px] rounded-[6px] bg-bg0 border border-line flex items-center gap-[3px] px-3 overflow-hidden">
         {bars.map((h, i) => <span key={i} className={`flex-1 rounded-full ${speaking ? 'wv-bar bg-amber' : 'bg-bg4'}`} style={{ height: `${h}%`, animationDelay: `${(i % 11) * 0.05}s`, animationDuration: `${0.35 + (i % 5) * 0.09}s` }} />)}
       </div>
       <div className="flex items-center justify-between mt-2.5">
-        <div className="font-mono text-[10px] text-dim">{speaking ? <span className="text-amber flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red rec-dot" /> {speaking === 'render' ? 'GENERATING WITH GEMINI…' : 'GENERATING PREVIEW…'}</span> : <span>IDLE · {model.name} armed · Gemini TTS</span>}</div>
+        <div className="font-mono text-[10px] text-dim">{speaking ? <span className="text-amber flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red rec-dot" /> {speaking === 'render' ? `GENERATING WITH ${engine.toUpperCase()}…` : 'GENERATING PREVIEW…'}</span> : <span>IDLE · {model.name} armed · {engine.toUpperCase()} TTS</span>}</div>
         <div className="w-[180px]"><Bar pct={queuePct} tone={queuePct >= 100 ? 'grn' : 'amber'} h={4} /></div>
       </div>
     </Panel>
@@ -212,10 +232,10 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="font-disp font-bold text-[19px] leading-tight tracking-tight">Voice Synthesis</h1>
-          <div className="text-[11px] text-dim mt-0.5">Gemini API text-to-speech · real backend · 18 production models</div>
+          <div className="text-[11px] text-dim mt-0.5">Multi-engine text-to-speech · real backend · 18 production models</div>
         </div>
         <div className="flex items-center gap-2">
-          <Chip t="cyan"><IcSpark s={10} /> GEMINI TTS</Chip>
+          <Chip t={engine === 'gemini' ? 'cyan' : 'vio'}><IcSpark s={10} /> {engine.toUpperCase()} TTS</Chip>
           <Chip t="grn"><span className="w-1.5 h-1.5 rounded-full bg-grn live-dot" /> ENGINE ONLINE</Chip>
         </div>
       </div>
@@ -261,13 +281,15 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
         <div className="flex flex-col gap-3 min-h-0 min-w-0 overflow-y-auto pr-1">
           <Panel title="SCRIPT / NARRATION INPUT" c="shrink-0"
             right={<div className="flex items-center gap-2">
+              <Lbl>Voice engine</Lbl>
+              <SelWrap><select className="field min-w-[120px]" value={engine} onChange={e => patch('engine', e.target.value as VoiceEngine)}>{(['gemini', 'kokoro'] as VoiceEngine[]).map(e => <option key={e} value={e} disabled={!availableEngines.includes(e)}>{e === 'gemini' ? 'Gemini TTS' : `Kokoro${availableEngines.includes(e) ? '' : ' (not installed)'}`}</option>)}</select></SelWrap>
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <break time="0.5s"/> ')}>+ PAUSE 0.5s</button>
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <emphasis level="strong">key point</emphasis> ')}>+ EMPHASIS</button>
             </div>}>
             <textarea className="field text-[12.5px]! h-[115px]" value={text} onChange={e => patch('text', e.target.value)} placeholder="Type or paste the narration to synthesize…" />
             <div className="flex items-center justify-between mt-1.5">
               <span className="font-mono text-[9.5px] text-dim">{text.length} chars · ~{estSecs(text.length, model.rate * rateMul)}s at current speed</span>
-              <span className="font-mono text-[9.5px] text-dim">Gemini TTS · <span className="text-cyan">{model.feats[0]}</span></span>
+              <span className="font-mono text-[9.5px] text-dim">{engine.toUpperCase()} TTS · <span className="text-cyan">{model.feats[0]}</span></span>
             </div>
           </Panel>
 
