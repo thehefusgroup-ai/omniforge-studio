@@ -31,23 +31,37 @@ export type ApiProductionResult = {
   duration_sec: number;
 };
 
+export type VoiceEngine = 'gemini' | 'kokoro';
+
 export type ApiVoiceRequest = {
   text: string;
+  engine: VoiceEngine;
   voice_id: string;
   style: string;
   emotion: string;
   speed: number;
+  pitch: number;
   preview?: boolean;
 };
 
 export type ApiVoiceResult = {
   ok: boolean;
+  engine: VoiceEngine;
   voice_id: string;
-  gemini_voice: string;
+  engine_voice: string | null;
   audio_url: string;
   path: string;
   duration_sec: number;
   preview: boolean;
+};
+
+export type ApiHealthResult = {
+  ok: boolean;
+  service: string;
+  voice: {
+    default_engine: VoiceEngine;
+    available_engines: VoiceEngine[];
+  };
 };
 
 const API_BASE = 'http://127.0.0.1:8000';
@@ -117,11 +131,16 @@ export async function produceLastFreeFacelessVideo(
   return payload as ApiProductionResult;
 }
 
-export async function checkFreeFacelessHealth(): Promise<boolean> {
+export async function getFreeFacelessHealth(): Promise<ApiHealthResult | null> {
   try {
-    const response = await fetch(`${API_BASE}/api/health`);
-    return response.ok;
+    const response = await fetch(API_BASE + '/api/health');
+    if (!response.ok) return null;
+    return (await response.json()) as ApiHealthResult;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function checkFreeFacelessHealth(): Promise<boolean> {
+  return (await getFreeFacelessHealth()) !== null;
 }
