@@ -55,6 +55,31 @@ export type ApiVoiceResult = {
   preview: boolean;
 };
 
+export type ApiVoiceCatalogVoice = {
+  id: string;
+  name: string;
+  gender: 'M' | 'F';
+  accent?: string;
+  description?: string;
+};
+
+export type ApiVoiceCatalogEngine = {
+  label: string;
+  voices: ApiVoiceCatalogVoice[];
+  capabilities: {
+    speed: boolean;
+    pitch: boolean;
+    style: boolean;
+    emotion: boolean;
+  };
+};
+
+export type ApiVoiceCatalogResult = {
+  ok: boolean;
+  default_engine: VoiceEngine;
+  engines: Record<VoiceEngine, ApiVoiceCatalogEngine>;
+};
+
 export type ApiHealthResult = {
   ok: boolean;
   service: string;
@@ -143,4 +168,15 @@ export async function getFreeFacelessHealth(): Promise<ApiHealthResult | null> {
 
 export async function checkFreeFacelessHealth(): Promise<boolean> {
   return (await getFreeFacelessHealth()) !== null;
+}
+
+
+export async function getFreeFacelessVoiceCatalog(): Promise<ApiVoiceCatalogResult | null> {
+  try {
+    const response = await fetch(API_BASE + '/api/voice/catalog');
+    if (!response.ok) return null;
+    return (await response.json()) as ApiVoiceCatalogResult;
+  } catch {
+    return null;
+  }
 }
