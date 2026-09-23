@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { VOICES, VOICE_STYLES, VOICE_EMOTIONS, type VoiceModel } from './voices';
-import { synthesizeFreeFacelessVoice, freeFacelessOutputUrl, getFreeFacelessHealth, type VoiceEngine } from './freefacelessApi';
+import { synthesizeFreeFacelessVoice, freeFacelessOutputUrl, getFreeFacelessHealth, getFreeFacelessVoiceCatalog, type VoiceEngine, type ApiVoiceCatalogResult } from './freefacelessApi';
 import {
   Btn, Lbl, Panel, Chip, Range, Seg, SelWrap, Empty, Bar,
   IcPlay, IcStop, IcWave, IcTrash, IcCheck, IcSpark, IcSend, IcRefresh, Spinner, IcSearch,
@@ -64,6 +64,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   const { engine, gender, q, voiceId, text, rateMul, pitchMul, stability, clarity, style, emotion } = prefs;
   const [speaking, setSpeaking] = useState<null | 'preview' | 'render'>(null);
   const [availableEngines, setAvailableEngines] = useState<VoiceEngine[]>(['gemini']);
+  const [voiceCatalog, setVoiceCatalog] = useState<ApiVoiceCatalogResult | null>(null);
   const [takes, setTakes] = useState<Take[]>(loadTakes);
   const [queuePct, setQueuePct] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -75,13 +76,18 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
 
   useEffect(() => {
     let alive = true;
-    getFreeFacelessHealth().then(health => {
-      if (!alive || !health?.voice?.available_engines?.length) return;
-      const engines = health.voice.available_engines;
-      setAvailableEngines(engines);
-      if (!engines.includes(prefs.engine)) {
-        setPrefs(p => ({ ...p, engine: health.voice.default_engine }));
+    Promise.all([getFreeFacelessHealth(), getFreeFacelessVoiceCatalog()]).then(([health, catalog]) => {
+      if (!alive) return;
+
+      if (health?.voice?.available_engines?.length) {
+        const engines = health.voice.available_engines;
+        setAvailableEngines(engines);
+        if (!engines.includes(prefs.engine)) {
+          setPrefs(p => ({ ...p, engine: health.voice.default_engine }));
+        }
       }
+
+      if (catalog?.ok) setVoiceCatalog(catalog);
     });
     return () => { alive = false; };
   }, []);
@@ -106,7 +112,32 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
   const patch = <K extends keyof VoicePrefs>(key: K, value: VoicePrefs[K]) =>
     setPrefs(p => ({ ...p, [key]: value }));
 
-  const model = VOICES.find(v => v.id === voiceId) ?? VOICES[0];
+  const kokoroModels: VoiceModel[] = useMemo(() => {
+    const voices = voiceCatalog?.engines?.kokoro?.voices ?? [];
+    return voices.map(v => ({
+      id: v.id,
+      name: v.name.toUpperCase(),
+      gender: v.gender,
+      code: `KOKORO · ${v.id}`,
+      accent: v.accent ?? 'English',
+      tags: [v.accent ?? 'English', 'Kokoro'],
+      desc: v.description ?? 'Local Kokoro voice.',
+      sample: DEFAULT_TEXT,
+      pitch: 1,
+      rate: 1,
+      feats: ['Local', '24 kHz', 'Speed control'],
+    }));
+  }, [voiceCatalog]);
+
+  const engineModels = engine === 'kokoro' ? kokoroModels : VOICES;
+  const model = engineModels.find(v => v.id === voiceId) ?? engineModels[0] ?? VOICES[0];
+
+  useEffect(() => {
+    if (!engineModels.length) return;
+    if (!engineModels.some(v => v.id === voiceId)) {
+      setPrefs(p => ({ ...p, voiceId: engineModels[0].id }));
+    }
+  }, [engine, engineModels, voiceId]);
 
   const speak = async (txt: string, m: VoiceModel, mode: 'preview' | 'render', onEnd?: (duration: number, audioUrl: string) => void) => {
     if (!txt.trim()) { toast('Nothing to synthesize', 'err'); return; }
@@ -182,7 +213,7 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
     });
   };
 
-  const filtered = VOICES.filter(v =>
+  const filtered = engineModels.filter(v =>
     (gender === 'ALL' || v.gender === gender) &&
     (v.name.toLowerCase().includes(q.toLowerCase()) || v.tags.join(' ').toLowerCase().includes(q.toLowerCase()))
   );
@@ -282,7 +313,14 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
           <Panel title="SCRIPT / NARRATION INPUT" c="shrink-0"
             right={<div className="flex items-center gap-2">
               <Lbl>Voice engine</Lbl>
-              <SelWrap><select className="field min-w-[120px]" value={engine} onChange={e => patch('engine', e.target.value as VoiceEngine)}>{(['gemini', 'kokoro'] as VoiceEngine[]).map(e => <option key={e} value={e} disabled={!availableEngines.includes(e)}>{e === 'gemini' ? 'Gemini TTS' : `Kokoro${availableEngines.includes(e) ? '' : ' (not installed)'}`}</option>)}</select></SelWrap>
+              <SelWrap><select className="field min-w-[120px]" value={engine} onChange={e => {
+                const next = e.target.value as VoiceEngine;
+                const nextModels = next === 'kokoro'
+                  ? (voiceCatalog?.engines?.kokoro?.voices ?? [])
+                  : VOICES;
+                patch('engine', next);
+                if (nextModels.length) patch('voiceId', nextModels[0].id);
+              }}>{(['gemini', 'kokoro'] as VoiceEngine[]).map(e => <option key={e} value={e} disabled={!availableEngines.includes(e) || (e === 'kokoro' && !voiceCatalog?.engines?.kokoro?.voices?.length)}>{e === 'gemini' ? 'Gemini TTS' : `Kokoro${availableEngines.includes(e) && voiceCatalog?.engines?.kokoro?.voices?.length ? '' : ' (not installed)'}`}</option>)}</select></SelWrap>
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <break time="0.5s"/> ')}>+ PAUSE 0.5s</button>
               <button className="text-[10px] font-mono text-dim hover:text-cyan transition-colors cursor-pointer" onClick={() => patch('text', text + ' <emphasis level="strong">key point</emphasis> ')}>+ EMPHASIS</button>
             </div>}>
@@ -301,11 +339,21 @@ export default function VoiceStudio({ addSource, toast, incoming, consumeIncomin
               <div className="space-y-3">
                 <Range label="Speed" value={rateMul} min={0.5} max={3} step={0.05} onChange={n => patch('rateMul', n)} fmt={n => n.toFixed(2) + '×'} />
                 <div className="text-[9px] font-mono text-dim -mt-2">0.50× to 3.00× · extended range</div>
-                <Range label="Pitch" value={pitchMul} min={0.7} max={1.3} step={0.05} onChange={n => patch('pitchMul', n)} fmt={n => n.toFixed(2) + '×'} cy />
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div><Lbl>Speaking style</Lbl><SelWrap><select className="field" value={style} onChange={e => patch('style', e.target.value)}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap></div>
-                  <div><Lbl>Emotion <span className="text-cyan">(new)</span></Lbl><SelWrap><select className="field" value={emotion} onChange={e => patch('emotion', e.target.value)}>{VOICE_EMOTIONS.map(e => <option key={e}>{e}</option>)}</select></SelWrap></div>
+                <div className={engine === 'kokoro' ? 'opacity-45' : ''}>
+                  <Range label="Pitch" value={pitchMul} min={0.7} max={1.3} step={0.05} onChange={n => patch('pitchMul', n)} fmt={n => n.toFixed(2) + '×'} cy />
+                  {engine === 'kokoro' && <div className="text-[9px] font-mono text-dim -mt-2">Native pitch control is not exposed by Kokoro.</div>}
                 </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className={engine === 'kokoro' ? 'opacity-45' : ''}>
+                    <Lbl>Speaking style</Lbl>
+                    <SelWrap><select className="field" value={style} onChange={e => patch('style', e.target.value)} disabled={engine === 'kokoro'}>{VOICE_STYLES.map(s => <option key={s}>{s}</option>)}</select></SelWrap>
+                  </div>
+                  <div className={engine === 'kokoro' ? 'opacity-45' : ''}>
+                    <Lbl>Emotion <span className="text-cyan">(new)</span></Lbl>
+                    <SelWrap><select className="field" value={emotion} onChange={e => patch('emotion', e.target.value)} disabled={engine === 'kokoro'}>{VOICE_EMOTIONS.map(e => <option key={e}>{e}</option>)}</select></SelWrap>
+                  </div>
+                </div>
+                {engine === 'kokoro' && <div className="text-[9px] font-mono text-dim">Kokoro currently uses voice identity + speed; Gemini retains style, emotion, and pitch controls.</div>}
               </div>
             </Panel>
             <Panel title="ENGINE QUALITY">
